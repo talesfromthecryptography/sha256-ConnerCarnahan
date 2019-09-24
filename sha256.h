@@ -37,3 +37,5 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len);
 void sha256_final(sha256_state *state,  uint8_t hash[]);
 
 #endif   // SHA256_H
+
+//Test will hash the bee movie script to 6310D9CBA21701DE7F7F1035C8D7F5DD756CDBF2CD71182CF7724B686F74A3B7

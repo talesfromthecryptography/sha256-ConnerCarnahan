@@ -64,7 +64,7 @@ void sha256_transform(sha256_state *state)
   //  Consider re-ordering some code
   // 
 	uint32_t a, b, c, d, e, f, g, h, t1, t2, w[NUM_ROUNDS];
-  uint8_t  i;
+  	uint8_t  i;
 
 	for (i = 0; i < 16; ++i)
 		w[i] = state->buffer[i];
