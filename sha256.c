@@ -82,13 +82,13 @@ void sha256_transform(sha256_state *state)
 		if(i >= 16){
 			//Exploits the fact we only need the last 16 elements of W
 			//It always replaces the one value we don't need anymore right at when we don't need it
-			W[i&0xF] = SIG1(W[(i-2)&0xF])+W[(i-7)&0xF]+SIG0(W[(i-15)&0xF])+W[i&0xF]; 
+			W[i&0xF] += SIG1(W[(i-2)&0xF])+W[(i-7)&0xF]+SIG0(W[(i-15)&0xF]); 
 		}
 
 		t1 = H[(base+7)&0x7] + EP1(H[(base+4)&0x7])+CH(H[(base+4)&0x7],H[(base+5)&0x7],H[(base+6)&0x7]) + k[i] + W[i&0xF];
 		t2 = EP0(H[base]) + MAJ(H[base], H[(base+1)&0x7], H[(base+2)&0x7]);
 
-		base = (base-1)&0x7; //Rotates the base so we don't have to copy so much
+		base = (base-1)&0x7; //Rotates the base so we don't have to copy so much (points to a)
 
 		H[(base+4)&0x7] += t1;
 		H[base] = t1 + t2;
@@ -101,13 +101,13 @@ void sha256_transform(sha256_state *state)
 
 void sha256_init(sha256_state *state)
 {
-  int i;
+  	int i;
 
 	state->buffer_bytes_used = 0;
 	state->bit_len = 0;
 
-  for (i=0; i<SHA256_DIGEST_SIZE; i++)
-  	state->digest[i] = init_digest[i];
+  	for (i=0; i<SHA256_DIGEST_SIZE; i++)
+  		state->digest[i] = init_digest[i];
 }
 
 void sha256_update(sha256_state *state, const uint8_t data[], int len)
@@ -120,7 +120,6 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len)
 
 		if (state->buffer_bytes_used == BUFFER_FULL) {
 			sha256_transform(state);
-			//state->bit_len += 512;
 			state->buffer_bytes_used = 0;
 
 		}
@@ -135,9 +134,9 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 	// Copy state->digest to hash	
 	
 	state_add_to_buffer(state,(uint8_t)0x80); //adds a 1 to the bit after the end of the data
-	state->bit_len-=8;
+	state->bit_len-=8; // correct for added bits
 	if (state->buffer_bytes_used > BUFFER_FULL - 8){
-		for(int i = state->buffer_bytes_used; i < BUFFER_FULL; i +=  1){
+		while(state->buffer_bytes_used < BUFFER_FULL){
 			state_add_to_buffer(state, 0);
 			state->bit_len -= 8; //So that I can use the infrastructure to add 0's without and make sure that it doesn't count too many bits
 		}
@@ -152,7 +151,7 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 		}
 		state->buffer[15] = (uint32_t)state->bit_len;
 		state->buffer[14] = (uint32_t)(state->bit_len >> 32);
-		PrintBuffer(state->buffer);
+		//PrintBuffer(state->buffer);
 	}
 
 	sha256_transform(state);
