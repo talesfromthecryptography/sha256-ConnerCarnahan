@@ -7,6 +7,9 @@
 * Details:    Defines the API for the corresponding SHA1 implementation.
 *********************************************************************/
 
+#include <ctype.h>
+
+
 #ifndef SHA256_H
 #define SHA256_H
 
@@ -34,8 +37,17 @@ typedef struct {
 /*********************** FUNCTION DECLARATIONS **********************/
 void sha256_init(sha256_state *state);
 void sha256_update(sha256_state *state, const uint8_t data[], int len);
-void sha256_final(sha256_state *state,  uint8_t hash[]);
+void sha256_final(sha256_state *state,  uint32_t hash[]);
 
+//Helper functions
+void state_add_to_buffer(sha256_state* a_ptr, uint8_t byte);
+void PrintHash(uint32_t* a_ptr);
+void PrintBuffer(uint32_t* a_ptr);
 #endif   // SHA256_H
 
-//Test will hash the bee movie script to 6310D9CBA21701DE7F7F1035C8D7F5DD756CDBF2CD71182CF7724B686F74A3B7
+static inline uint8_t hex2bin(char c) {
+  if ('0' <= c && c <= '9')
+    return c - '0';
+  else
+    return tolower(c)-'a' + 0xa;
+}

@@ -14,6 +14,7 @@
 /*************************** HEADER FILES ***************************/
 #include <stdlib.h>
 #include <memory.h>
+#include <stdio.h>
 #include "sha256.h"
 
 /****************************** MACROS ******************************/
@@ -65,11 +66,18 @@ void sha256_transform(sha256_state *state)
   // 
 	uint32_t a, b, c, d, e, f, g, h, t1, t2, w[NUM_ROUNDS];
   	uint8_t  i;
+	//uint32_t H[8];
+	//uint8_t base = 0;
+	//uint8_t mask = 0x7;
 
 	for (i = 0; i < 16; ++i)
 		w[i] = state->buffer[i];
 	for ( ; i < 64; ++i)
 		w[i] = SIG1(w[i - 2]) + w[i - 7] + SIG0(w[i - 15]) + w[i - 16];
+
+	//for (int i = 0; i < 8; i+= 1){
+	//	H[i] = state->digest[i];
+	//}
 
 	a = state->digest[0];
 	b = state->digest[1];
@@ -118,22 +126,83 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len)
 {
 	int i;
 
-	for (i = 0; i < len; ++i) {
+	for (i = 0; i < len; i++) {
 		// Add data[i] to the buffer
-    
-		state->buffer_bytes_used++;
+		state_add_to_buffer(state, data[i]);
+
 		if (state->buffer_bytes_used == BUFFER_FULL) {
 			sha256_transform(state);
-			state->bit_len += 512;
+			//state->bit_len += 512;
 			state->buffer_bytes_used = 0;
+
 		}
 	}
 }
 
-void sha256_final(sha256_state *state, uint8_t hash[])
+void sha256_final(sha256_state *state, uint32_t hash[])
 {	
 	// Pad the buffer.
-  // Transform
-  // If latest buffer could not fit state->bit_len, build final buffer and transform
+  	// Transform
+  	// If latest buffer could not fit state->bit_len, build final buffer and transform
 	// Copy state->digest to hash
+	//state->bit_len += (state->buffer_bytes_used << 3);
+	
+	//printf("Hey we made it here");
+	
+	state_add_to_buffer(state,(uint8_t)0x80); //adds a 1 to the bit after the end of the data
+	state->bit_len-=8;
+	if (state->buffer_bytes_used > BUFFER_FULL - 8){
+		for(int i = state->buffer_bytes_used; i < BUFFER_FULL; i +=  1){
+			state_add_to_buffer(state, 0);
+			state->bit_len -= 8;
+		}
+		sha256_transform(state);
+		memset(state->buffer,0,sizeof(uint32_t)*SHA256_BUFFER_SIZE-2);
+		state->buffer[15] = (uint32_t)state->bit_len;
+		state->buffer[14] = (uint32_t)(state->bit_len >> 32);
+	} else {
+		for (int i = state->buffer_bytes_used; i < BUFFER_FULL-8; i+=1){
+			state_add_to_buffer(state,0);
+			state->bit_len -= 8;
+		}
+		state->buffer[15] = (uint32_t)state->bit_len;
+		state->buffer[14] = (uint32_t)(state->bit_len >> 32);
+		PrintBuffer(state->buffer);
+	}
+
+	sha256_transform(state);
+	for(int i = 0; i < SHA256_DIGEST_SIZE; i+=1){
+		hash[SHA256_DIGEST_SIZE - 1 - i] = state->digest[i];
+	}
+}
+
+void state_add_to_buffer(sha256_state* a_ptr, uint8_t byte){
+	if ((a_ptr->buffer_bytes_used &0x3) == 0){
+		a_ptr->buffer[(a_ptr->buffer_bytes_used>>2)] = (uint32_t)byte << 24; // this makes sure it clears out garbage in the buffer
+	} else {
+		a_ptr->buffer[(a_ptr->buffer_bytes_used>>2)] |= ((uint32_t)byte) << (~(a_ptr->buffer_bytes_used & 0x3) << 3);
+	}
+	a_ptr->buffer_bytes_used+=1;
+	a_ptr->bit_len+=8;
+	//printf("Added %x to the buffer \n", byte);
+}
+
+void PrintHash(uint32_t* a_ptr){
+    printf("Hash: ");
+    for (int i = 0; i < SHA256_DIGEST_SIZE; i++){
+        printf("%08x ", a_ptr[SHA256_DIGEST_SIZE-1-i]);
+    }
+    printf("\n");
+}
+
+void PrintBuffer(uint32_t* a_ptr){
+    printf("Buffer:\n");
+    for (int i = 0; i < SHA256_DIGEST_SIZE; i++){
+        printf("%08x ", a_ptr[i]);
+    }
+	printf("\n");
+	for (int i = 0; i < SHA256_DIGEST_SIZE; i++){
+        printf("%08x ", a_ptr[i+SHA256_DIGEST_SIZE]);
+    }
+    printf("\n");
 }
