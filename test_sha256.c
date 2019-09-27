@@ -17,7 +17,7 @@ int main(){
     //HexToHash(beefkey, "17e117288642879110850b62f83cb13d07e7961e321c1c762ff5e5ab83029c7c");
     //HexToHash(beekey, "6310D9CBA21701DE7F7F1035C8D7F5DD756CDBF2CD71182CF7724B686F74A3B7");
 
-    HexToSHA256(hash,"BEEF");
+    HexToSHA256(hash,"BEEFBEEF");
     PrintHash(hash);
     //CompareHash(hash,beefkey);
 
@@ -64,7 +64,7 @@ void HexToHash(uint32_t* a_ptr, char* s){
 
 void CompareHash(uint32_t* a_ptr, uint32_t* b_ptr){
     for(int i = 0; i < SHA256_DIGEST_SIZE; i+=1 ){
-        if ((a_ptr[i] ^ b_ptr[i]) != 0){
+        if (a_ptr[i] != b_ptr[i]){
             printf("Hash executed incorrectly");
             return;
         }

@@ -63,52 +63,40 @@ void sha256_transform(sha256_state *state)
   //  2. Find a way to reduce copying (lines 83-90)
   //  
   //  Consider re-ordering some code
-  // 
-	uint32_t a, b, c, d, e, f, g, h, t1, t2, w[NUM_ROUNDS];
+  // 	
+	uint32_t t1, t2;
   	uint8_t  i;
-	//uint32_t H[8];
-	//uint8_t base = 0;
-	//uint8_t mask = 0x7;
+	
+	uint32_t H[8], W[16];
+	uint8_t base = 0;
 
-	for (i = 0; i < 16; ++i)
-		w[i] = state->buffer[i];
-	for ( ; i < 64; ++i)
-		w[i] = SIG1(w[i - 2]) + w[i - 7] + SIG0(w[i - 15]) + w[i - 16];
-
-	//for (int i = 0; i < 8; i+= 1){
-	//	H[i] = state->digest[i];
-	//}
-
-	a = state->digest[0];
-	b = state->digest[1];
-	c = state->digest[2];
-	d = state->digest[3];
-	e = state->digest[4];
-	f = state->digest[5];
-	g = state->digest[6];
-	h = state->digest[7];
-
-	for (i = 0; i < 64; ++i) {
-		t1 = h + EP1(e) + CH(e,f,g) + k[i] + w[i];
-		t2 = EP0(a) + MAJ(a,b,c);
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
+	for (i = 0; i < 16; ++i){
+		W[i] = state->buffer[i];
 	}
 
-	state->digest[0] += a;
-	state->digest[1] += b;
-	state->digest[2] += c;
-	state->digest[3] += d;
-	state->digest[4] += e;
-	state->digest[5] += f;
-	state->digest[6] += g;
-	state->digest[7] += h;
+	for (i = 0; i < 8; i+= 1){
+		H[i] = state->digest[i];
+	}
+
+	for (i = 0; i < 64; ++i) {
+		if(i >= 16){
+			//Exploits the fact we only need the last 16 elements of W
+			//It always replaces the one value we don't need anymore right at when we don't need it
+			W[i&0xF] = SIG1(W[(i-2)&0xF])+W[(i-7)&0xF]+SIG0(W[(i-15)&0xF])+W[i&0xF]; 
+		}
+
+		t1 = H[(base+7)&0x7] + EP1(H[(base+4)&0x7])+CH(H[(base+4)&0x7],H[(base+5)&0x7],H[(base+6)&0x7]) + k[i] + W[i&0xF];
+		t2 = EP0(H[base]) + MAJ(H[base], H[(base+1)&0x7], H[(base+2)&0x7]);
+
+		base = (base-1)&0x7; //Rotates the base so we don't have to copy so much
+
+		H[(base+4)&0x7] += t1;
+		H[base] = t1 + t2;
+	}
+
+	for(int j = 0; j < 8; j += 1){
+		state->digest[j] += H[(base+j)&0x7];
+	}
 }
 
 void sha256_init(sha256_state *state)
@@ -144,17 +132,14 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 	// Pad the buffer.
   	// Transform
   	// If latest buffer could not fit state->bit_len, build final buffer and transform
-	// Copy state->digest to hash
-	//state->bit_len += (state->buffer_bytes_used << 3);
-	
-	//printf("Hey we made it here");
+	// Copy state->digest to hash	
 	
 	state_add_to_buffer(state,(uint8_t)0x80); //adds a 1 to the bit after the end of the data
 	state->bit_len-=8;
 	if (state->buffer_bytes_used > BUFFER_FULL - 8){
 		for(int i = state->buffer_bytes_used; i < BUFFER_FULL; i +=  1){
 			state_add_to_buffer(state, 0);
-			state->bit_len -= 8;
+			state->bit_len -= 8; //So that I can use the infrastructure to add 0's without and make sure that it doesn't count too many bits
 		}
 		sha256_transform(state);
 		memset(state->buffer,0,sizeof(uint32_t)*SHA256_BUFFER_SIZE-2);
@@ -163,7 +148,7 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 	} else {
 		for (int i = state->buffer_bytes_used; i < BUFFER_FULL-8; i+=1){
 			state_add_to_buffer(state,0);
-			state->bit_len -= 8;
+			state->bit_len -= 8; //So that I can use the infrastructure to add 0's without and make sure that it doesn't count too many bits
 		}
 		state->buffer[15] = (uint32_t)state->bit_len;
 		state->buffer[14] = (uint32_t)(state->bit_len >> 32);
