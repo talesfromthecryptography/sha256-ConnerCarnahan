@@ -1,8 +1,8 @@
 
 /*********************************************************************
 * Filename:   sha256.h
-* Author:     
-* Copyright:
+* Author:     Conner Carnahan
+* Copyright:  All rights reserved(?)
 * Disclaimer: This code is presented "as is" without any guarantees.
 * Details:    Defines the API for the corresponding SHA1 implementation.
 *********************************************************************/
@@ -40,9 +40,10 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len);
 void sha256_final(sha256_state *state,  uint32_t hash[]);
 
 //Helper functions
-void state_add_to_buffer(sha256_state* a_ptr, uint8_t byte);
-void PrintHash(uint32_t* a_ptr);
-void PrintBuffer(uint32_t* a_ptr);
+void state_add_to_buffer(sha256_state* a_ptr, uint8_t byte); //Because it looks cleaner this way
+void PrintHash(uint32_t* a_ptr); //For Debugging
+void PrintBuffer(uint32_t* a_ptr); //For debugging
+
 #endif   // SHA256_H
 
 static inline uint8_t hex2bin(char c) {

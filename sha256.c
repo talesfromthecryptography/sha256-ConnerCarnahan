@@ -1,7 +1,7 @@
 /*********************************************************************
 * Filename:   sha256.c
-* Author:     
-* Copyright:
+* Author:     Conner Carnahan
+* Copyright:  All rights reserved(?)
 * Disclaimer: This code is presented "as is" without any guarantees.
 *
 * Implementation of the SHA-256 hashing algorithm.
@@ -88,7 +88,7 @@ void sha256_transform(sha256_state *state)
 		t1 = H[(base+7)&0x7] + EP1(H[(base+4)&0x7])+CH(H[(base+4)&0x7],H[(base+5)&0x7],H[(base+6)&0x7]) + k[i] + W[i&0xF];
 		t2 = EP0(H[base]) + MAJ(H[base], H[(base+1)&0x7], H[(base+2)&0x7]);
 
-		base = (base-1)&0x7; //Rotates the base so we don't have to copy so much (points to a)
+		base = (base-1)&0x7; //Rotates the base so we don't have to copy so much (points to a's position after shift)
 
 		H[(base+4)&0x7] += t1;
 		H[base] = t1 + t2;
@@ -135,15 +135,17 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 	
 	state_add_to_buffer(state,(uint8_t)0x80); //adds a 1 to the bit after the end of the data
 	state->bit_len-=8; // correct for added bits
-	if (state->buffer_bytes_used > BUFFER_FULL - 8){
+	if (state->buffer_bytes_used > BUFFER_FULL - 8){ //Because it needs to be able to hold a 64 bit number, if it can't we need to transform twice
 		while(state->buffer_bytes_used < BUFFER_FULL){
 			state_add_to_buffer(state, 0);
 			state->bit_len -= 8; //So that I can use the infrastructure to add 0's without and make sure that it doesn't count too many bits
 		}
 		sha256_transform(state);
+
 		memset(state->buffer,0,sizeof(uint32_t)*SHA256_BUFFER_SIZE-2);
 		state->buffer[15] = (uint32_t)state->bit_len;
 		state->buffer[14] = (uint32_t)(state->bit_len >> 32);
+
 	} else {
 		for (int i = state->buffer_bytes_used; i < BUFFER_FULL-8; i+=1){
 			state_add_to_buffer(state,0);
@@ -155,8 +157,9 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 	}
 
 	sha256_transform(state);
+	
 	for(int i = 0; i < SHA256_DIGEST_SIZE; i+=1){
-		hash[SHA256_DIGEST_SIZE - 1 - i] = state->digest[i];
+		hash[SHA256_DIGEST_SIZE - 1 - i] = state->digest[i]; //I filled it backwards because printing made more sense to me that way
 	}
 }
 

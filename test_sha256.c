@@ -1,3 +1,11 @@
+/*********************************************************************
+* Filename:   sha256.h
+* Author:     Conner Carnahan
+* Copyright:  All rights reserved(?)
+* Disclaimer: This code is presented "as is" without any guarantees.
+* Details:    Defines the API for the corresponding SHA1 implementation.
+*********************************************************************/
+
 #include <stdlib.h>
 #include <memory.h>
 #include "sha256.h"
@@ -36,7 +44,7 @@ void BeeToSHA256(uint32_t* a_ptr){
 
     fileptr = fopen("/Users/connereric2/Documents/GitHub/sha256-ConnerCarnahan/beemovietext.txt", "rb");
     if(fileptr == NULL){
-        printf("Error opening file");
+        printf("Error opening file \n");
         return;
     }
     
